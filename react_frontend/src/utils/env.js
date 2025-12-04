@@ -1,5 +1,6 @@
 /**
  * Helpers for environment-driven feature/config.
+ * Supports CSV or JSON values for flags, used by API client for optional toggles (e.g., "livePolling").
  */
 
 // PUBLIC_INTERFACE

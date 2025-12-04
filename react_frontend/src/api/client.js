@@ -3,17 +3,52 @@
  * Uses env-based API base URL resolution and Fetch API.
  */
 
-const UPLOAD_PATH = '/api/upload';
-const RESULTS_PATH_PREFIX = '/api/results/';
+export const API_BASE =
+  (process.env.REACT_APP_API_BASE ||
+    process.env.REACT_APP_BACKEND_URL ||
+    (typeof window !== 'undefined' ? window.__API_BASE__ : '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '') ||
+    '')?.replace(/\/+$/, '') || '';
+
+export const UPLOAD_PATH =
+  process.env.REACT_APP_UPLOAD_PATH || '/api/upload';
+export const RESULTS_PATH =
+  process.env.REACT_APP_RESULTS_PATH || '/api/results';
+export const HEALTHCHECK_PATH =
+  process.env.REACT_APP_HEALTHCHECK_PATH || '';
+
+/**
+ * Feature toggles (no new behavior mandated; adding minimal toggle wiring).
+ * If REACT_APP_FEATURE_FLAGS contains "livePolling", use it to slightly adjust backoff.
+ */
+function hasFeatureFlag(flag) {
+  const v = process.env.REACT_APP_FEATURE_FLAGS;
+  if (!v) return false;
+  const s = String(v).trim();
+  try {
+    const parsed = (s.startsWith('[') || s.startsWith('{')) ? JSON.parse(s) : null;
+    if (Array.isArray(parsed)) {
+      return parsed.map(x => String(x).toLowerCase()).includes(String(flag).toLowerCase());
+    }
+    if (parsed && typeof parsed === 'object') {
+      return Boolean(parsed[flag]);
+    }
+  } catch { /* ignore */ }
+  // CSV fallback
+  return s.split(',').map(x => x.trim().toLowerCase()).includes(String(flag).toLowerCase());
+}
 
 // PUBLIC_INTERFACE
 export function getApiBase() {
   /** Resolve base URL from env or window location */
-  const envBase =
-    process.env.REACT_APP_API_BASE ||
-    process.env.REACT_APP_BACKEND_URL ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
-  return envBase?.replace(/\/+$/, '') || '';
+  return API_BASE;
+}
+
+// PUBLIC_INTERFACE
+export function computeHealthcheckUrl() {
+  /** Returns healthcheck URL if HEALTHCHECK_PATH provided, else undefined */
+  if (!HEALTHCHECK_PATH) return undefined;
+  return `${API_BASE}${HEALTHCHECK_PATH}`;
 }
 
 /**
@@ -49,12 +84,13 @@ export async function uploadImage(file) {
    * Uploads an image to the server.
    * Returns either { matches: [...] } for immediate results
    * or { jobId } to indicate async processing with polling.
+   * Sends multipart/form-data with field name 'image'.
    */
-  const base = getApiBase();
   const form = new FormData();
-  form.append('file', file, file.name || 'upload.jpg');
+  // requirement: field name 'image'
+  form.append('image', file, file.name || 'upload.jpg');
 
-  const url = `${base}${UPLOAD_PATH}`;
+  const url = `${API_BASE}${UPLOAD_PATH}`;
   const res = await fetchJson(url, {
     method: 'POST',
     body: form,
@@ -66,16 +102,15 @@ export async function uploadImage(file) {
 export async function pollResults(jobId, { signal } = {}) {
   /**
    * Poll results endpoint until status === 'completed' or error/timeout.
-   * Includes exponential backoff and respects AbortSignal.
+   * Includes simple backoff and respects AbortSignal.
    */
-  const base = getApiBase();
   const start = Date.now();
   const timeoutMs = 60_000; // 60s total timeout
   let attempt = 0;
 
   while (true) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-    const url = `${base}${RESULTS_PATH_PREFIX}${encodeURIComponent(jobId)}`;
+    const url = `${API_BASE}${RESULTS_PATH}/${encodeURIComponent(jobId)}`;
     const data = await fetchJson(url, { method: 'GET', signal });
 
     if (data?.status === 'completed') {
@@ -94,9 +129,11 @@ export async function pollResults(jobId, { signal } = {}) {
       throw err;
     }
 
-    // Backoff with a cap
+    // Backoff with a cap; slightly faster if livePolling feature enabled
+    const livePolling = hasFeatureFlag('livePolling');
     attempt += 1;
-    const delay = Math.min(500 * Math.pow(1.4, attempt), 3000);
+    const baseDelay = livePolling ? 350 : 500;
+    const delay = Math.min(baseDelay * Math.pow(1.35, attempt), 3000);
     await new Promise((r, rej) => {
       const id = setTimeout(r, delay);
       if (signal) {

@@ -27,6 +27,16 @@ Launches the test runner in interactive watch mode.
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
 
+## Backend configuration
+
+To connect to a real backend API, configure environment variables:
+
+- Set REACT_APP_API_BASE to your backend (e.g., https://api.example.com)
+- Optional overrides: REACT_APP_UPLOAD_PATH, REACT_APP_RESULTS_PATH, REACT_APP_HEALTHCHECK_PATH
+- After changing env, rebuild or restart your preview
+
+See docs/backend-config.md for full details.
+
 ## Customization
 
 ### Colors

@@ -1,11 +1,9 @@
-import { getApiBase } from '../api/client';
+import { computeHealthcheckUrl } from '../api/client';
 
 // PUBLIC_INTERFACE
 export default function Footer() {
   /** Footer with support/contact placeholders and healthcheck link if configured */
-  const apiBase = getApiBase();
-  const healthPath = process.env.REACT_APP_HEALTHCHECK_PATH;
-  const healthHref = healthPath ? `${apiBase}${healthPath}` : null;
+  const healthHref = computeHealthcheckUrl();
 
   return (
     <footer className="footer" role="contentinfo">
@@ -13,14 +11,14 @@ export default function Footer() {
         <div>Need help? Contact support@example.com</div>
         <div className="row">
           {healthHref && (
-            <a className="link" href={healthHref} target="_blank" rel="noreferrer">
-              API Healthcheck
+            <a className="link" href={healthHref} target="_blank" rel="noopener noreferrer">
+              API Health
             </a>
           )}
-          <a className="link" href="https://example.com/privacy" target="_blank" rel="noreferrer">
+          <a className="link" href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">
             Privacy
           </a>
-          <a className="link" href="https://example.com/terms" target="_blank" rel="noreferrer">
+          <a className="link" href="https://example.com/terms" target="_blank" rel="noopener noreferrer">
             Terms
           </a>
         </div>

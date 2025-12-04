@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { getApiBase } from '../api/client';
+import { getApiBase, computeHealthcheckUrl } from '../api/client';
 
 // PUBLIC_INTERFACE
 export function useApiBase() {
   /**
-   * Returns { apiBase, wsUrl, healthcheckPath }
+   * Returns { apiBase, wsUrl, healthcheckUrl }
    * Using provided env vars and current origin as fallback.
    */
   return useMemo(() => {
@@ -16,7 +16,7 @@ export function useApiBase() {
       const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
       wsUrl = `${proto}//${loc.host}`;
     }
-    const healthcheckPath = process.env.REACT_APP_HEALTHCHECK_PATH;
-    return { apiBase, wsUrl, healthcheckPath };
+    const healthcheckUrl = computeHealthcheckUrl();
+    return { apiBase, wsUrl, healthcheckUrl };
   }, []);
 }
