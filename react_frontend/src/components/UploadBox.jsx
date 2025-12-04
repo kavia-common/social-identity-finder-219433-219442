@@ -2,13 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Spinner from './Spinner';
 
 // PUBLIC_INTERFACE
-export default function UploadBox({ onFileSelected, onUpload, selectedFile, isUploading }) {
+export default function UploadBox({ onFileSelected, onUpload, selectedFile, isUploading, retrying }) {
   /**
    * Drag-and-drop area + file picker.
    * Accepts image/*, previews selected image, and calls onUpload(file).
+   * Shows inline validation errors for type/size.
    */
   const [dragOver, setDragOver] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [validationError, setValidationError] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -21,14 +23,31 @@ export default function UploadBox({ onFileSelected, onUpload, selectedFile, isUp
     }
   }, [selectedFile]);
 
+  const validate = useCallback((file) => {
+    if (!file) return 'Please choose a file.';
+    if (!file.type || !file.type.startsWith('image/')) return 'Invalid file type. Please upload an image.';
+    // 10MB limit
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) return 'File is too large. Max size is 10MB.';
+    return null;
+  }, []);
+
+  const acceptFile = useCallback((file) => {
+    const vErr = validate(file);
+    setValidationError(vErr);
+    if (!vErr) {
+      onFileSelected?.(file);
+    }
+  }, [onFileSelected, validate]);
+
   const onDrop = useCallback(
     (e) => {
       e.preventDefault();
       setDragOver(false);
       const file = e.dataTransfer?.files?.[0];
-      if (file) onFileSelected?.(file);
+      if (file) acceptFile(file);
     },
-    [onFileSelected]
+    [acceptFile]
   );
 
   const onDragOver = useCallback((e) => {
@@ -43,8 +62,8 @@ export default function UploadBox({ onFileSelected, onUpload, selectedFile, isUp
 
   const onPick = useCallback((e) => {
     const file = e.target?.files?.[0];
-    if (file) onFileSelected?.(file);
-  }, [onFileSelected]);
+    if (file) acceptFile(file);
+  }, [acceptFile]);
 
   const onKeyPress = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -53,8 +72,8 @@ export default function UploadBox({ onFileSelected, onUpload, selectedFile, isUp
   }, []);
 
   const handleUploadClick = useCallback(() => {
-    if (selectedFile) onUpload?.(selectedFile);
-  }, [onUpload, selectedFile]);
+    if (selectedFile && !validationError) onUpload?.(selectedFile);
+  }, [onUpload, selectedFile, validationError]);
 
   return (
     <div>
@@ -86,16 +105,21 @@ export default function UploadBox({ onFileSelected, onUpload, selectedFile, isUp
             <img src={previewUrl} alt="Selected preview" />
           </div>
         )}
+        {validationError && (
+          <div className="alert" role="alert" style={{ marginTop: 10 }}>
+            {validationError}
+          </div>
+        )}
       </div>
       <div className="row" style={{ marginTop: 12 }}>
         <button
           className="btn"
           onClick={handleUploadClick}
-          disabled={!selectedFile || isUploading}
-          aria-disabled={!selectedFile || isUploading}
+          disabled={!selectedFile || isUploading || retrying || !!validationError}
+          aria-disabled={!selectedFile || isUploading || retrying || !!validationError}
           aria-label="Upload selected image"
         >
-          {isUploading ? <div className="row"><Spinner /> <span>Uploading...</span></div> : 'Upload'}
+          {isUploading || retrying ? <div className="row"><Spinner /> <span>{retrying ? 'Retrying…' : 'Uploading...'}</span></div> : 'Upload'}
         </button>
       </div>
     </div>

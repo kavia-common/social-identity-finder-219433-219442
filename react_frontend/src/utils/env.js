@@ -35,3 +35,15 @@ export function getLogLevel() {
   /** Returns REACT_APP_LOG_LEVEL or 'info' */
   return process.env.REACT_APP_LOG_LEVEL || 'info';
 }
+
+// PUBLIC_INTERFACE
+export function getRetryConfig() {
+  /** Returns { maxRetries, baseDelayMs } from env with defaults */
+  const max = Number.isFinite(Number(process.env.REACT_APP_RETRY_MAX))
+    ? Math.max(0, Number(process.env.REACT_APP_RETRY_MAX))
+    : 5;
+  const base = Number.isFinite(Number(process.env.REACT_APP_RETRY_BASE_DELAY_MS))
+    ? Math.max(100, Number(process.env.REACT_APP_RETRY_BASE_DELAY_MS))
+    : 500;
+  return { maxRetries: max, baseDelayMs: base };
+}

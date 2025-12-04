@@ -170,6 +170,16 @@
   color: #0b5bd3;
 }
 
+.alert.warn {
+  background: #fffaf0;
+  color: #92400e;
+}
+
+.alert.error {
+  background: #fff5f5;
+  color: #b91c1c;
+}
+
 .alert .close {
   margin-left: auto;
   background: transparent;
@@ -178,6 +188,21 @@
   font-size: 18px;
   line-height: 1;
   color: inherit;
+}
+
+/* Details expander */
+.details {
+  font-size: 12px;
+}
+.details summary {
+  cursor: pointer;
+  color: var(--color-muted);
+  user-select: none;
+}
+.details[open] {
+  background: rgba(17,24,39,0.02);
+  border-radius: 8px;
+  padding: 8px;
 }
 
 /* Results */

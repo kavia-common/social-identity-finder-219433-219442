@@ -8,6 +8,7 @@ This project provides a minimal React template with a clean, modern UI and minim
 - **Modern UI**: Clean, responsive design with KAVIA brand styling
 - **Fast**: Minimal dependencies for quick loading times
 - **Simple**: Easy to understand and modify
+- **Resilient network UX**: Clear error messages and built-in retry with exponential backoff for uploads and results polling
 
 ## Getting Started
 
@@ -36,7 +37,12 @@ To connect to a real backend API, configure environment variables:
   - REACT_APP_UPLOAD_PATH (default: /api/upload)
   - REACT_APP_RESULTS_PATH (default: /api/results)
   - REACT_APP_HEALTHCHECK_PATH (optional; Footer shows "API Health" link when set)
+- Retry tuning (optional):
+  - REACT_APP_RETRY_MAX (default: 5)
+  - REACT_APP_RETRY_BASE_DELAY_MS (default: 500)
 - After changing env, rebuild or restart your preview
+
+The UI surfaces common "failed to fetch" causes including CORS, mixed-content (HTTPS page calling HTTP API), offline/network down, HTTP errors, and timeouts. An alert shows the recommended next steps and a details expander for diagnostics.
 
 See docs/backend-config.md for full details and examples.
 
@@ -44,17 +50,7 @@ See docs/backend-config.md for full details and examples.
 
 ### Colors
 
-The main brand colors are defined as CSS variables in `src/App.css`:
-
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
+The main brand colors are defined as CSS variables in `src/App.css`.
 
 ### Components
 
