@@ -19,8 +19,16 @@ Resolution priority:
 If your backend routes differ from the defaults, you can override them:
 
 - REACT_APP_UPLOAD_PATH (default: /api/upload)
+  - Used for POST image upload (multipart field name: "image")
+  - Full URL: `${REACT_APP_API_BASE}${REACT_APP_UPLOAD_PATH}`
 - REACT_APP_RESULTS_PATH (default: /api/results)
+  - Used for GET polling: `${REACT_APP_API_BASE}${REACT_APP_RESULTS_PATH}/{jobId}`
 - REACT_APP_HEALTHCHECK_PATH (default: not set; when set, Footer shows an "API Health" link)
+  - Full URL: `${REACT_APP_API_BASE}${REACT_APP_HEALTHCHECK_PATH}`
+
+Notes:
+- Leading/trailing slashes are normalized; you can provide `/v1/upload` or `v1/upload` and it will be treated as `/v1/upload`.
+- API_BASE will have trailing slashes removed to avoid `//` in URLs.
 
 Example:
 REACT_APP_UPLOAD_PATH=/v1/files

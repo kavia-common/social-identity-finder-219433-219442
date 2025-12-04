@@ -10,12 +10,16 @@ export const API_BASE =
     (typeof window !== 'undefined' ? window.location.origin : '') ||
     '')?.replace(/\/+$/, '') || '';
 
+/**
+ * Allow configurable endpoint paths with env overrides and sane defaults.
+ * These are appended to API_BASE when constructing URLs.
+ */
 export const UPLOAD_PATH =
-  process.env.REACT_APP_UPLOAD_PATH || '/api/upload';
+  (process.env.REACT_APP_UPLOAD_PATH || '/api/upload').replace(/^\/?/, '/');
 export const RESULTS_PATH =
-  process.env.REACT_APP_RESULTS_PATH || '/api/results';
+  (process.env.REACT_APP_RESULTS_PATH || '/api/results').replace(/^\/?/, '/');
 export const HEALTHCHECK_PATH =
-  process.env.REACT_APP_HEALTHCHECK_PATH || '';
+  (process.env.REACT_APP_HEALTHCHECK_PATH || '').replace(/^\/?/, '/');
 
 /**
  * Feature toggles (no new behavior mandated; adding minimal toggle wiring).
@@ -46,8 +50,11 @@ export function getApiBase() {
 
 // PUBLIC_INTERFACE
 export function computeHealthcheckUrl() {
-  /** Returns healthcheck URL if HEALTHCHECK_PATH provided, else undefined */
-  if (!HEALTHCHECK_PATH) return undefined;
+  /**
+   * Returns full healthcheck URL if HEALTHCHECK_PATH provided; else undefined.
+   * Ensures single slash between base and path.
+   */
+  if (!process.env.REACT_APP_HEALTHCHECK_PATH) return undefined;
   return `${API_BASE}${HEALTHCHECK_PATH}`;
 }
 

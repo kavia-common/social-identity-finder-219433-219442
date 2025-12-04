@@ -32,10 +32,13 @@ It correctly bundles React in production mode and optimizes the build for the be
 To connect to a real backend API, configure environment variables:
 
 - Set REACT_APP_API_BASE to your backend (e.g., https://api.example.com)
-- Optional overrides: REACT_APP_UPLOAD_PATH, REACT_APP_RESULTS_PATH, REACT_APP_HEALTHCHECK_PATH
+- Optional overrides: 
+  - REACT_APP_UPLOAD_PATH (default: /api/upload)
+  - REACT_APP_RESULTS_PATH (default: /api/results)
+  - REACT_APP_HEALTHCHECK_PATH (optional; Footer shows "API Health" link when set)
 - After changing env, rebuild or restart your preview
 
-See docs/backend-config.md for full details.
+See docs/backend-config.md for full details and examples.
 
 ## Customization
 
