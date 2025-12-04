@@ -2,6 +2,36 @@ import { getEnv } from '../config/env';
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// Build API base ensuring no trailing slash
+function apiBase() {
+  const env = getEnv();
+  return (env.API_BASE_URL || '').replace(/\/*$/, '');
+}
+
+// Create a helpful, actionable network error message.
+function friendlyNetworkError(originalError, url) {
+  const parts = [
+    'Network request failed.',
+    url ? `URL: ${url}` : null,
+  ].filter(Boolean);
+
+  const msg = (originalError && (originalError.message || String(originalError))) || '';
+  const isFailedToFetch = /Failed to fetch/i.test(msg) || originalError?.name === 'TypeError';
+
+  if (isFailedToFetch) {
+    parts.push(
+      'Possible causes:',
+      '- CORS is not enabled on the API (missing Access-Control-Allow-Origin).',
+      '- The API URL is incorrect or unreachable.',
+      '- Mixed content: loading http API from https page.',
+      'Verify REACT_APP_API_BASE or REACT_APP_BACKEND_URL and server CORS settings.'
+    );
+  } else {
+    parts.push(`Details: ${msg || 'Unknown error'}`);
+  }
+  return parts.join(' ');
+}
+
 // PUBLIC_INTERFACE
 export async function findIdentities(file, { signal } = {}) {
   /** Calls POST /api/v1/identify with FormData 'image'.
@@ -19,10 +49,11 @@ export async function findIdentities(file, { signal } = {}) {
   }
 
   if (!env.API_BASE_URL) {
-    return { status: 'error', error: 'API base URL is not configured.' };
+    // UI will show setup hint, do not crash
+    return { status: 'error', error: 'API base URL is not configured. Set REACT_APP_API_BASE or REACT_APP_BACKEND_URL.' };
   }
 
-  const url = `${env.API_BASE_URL.replace(/\/+$/, '')}/api/v1/identify`;
+  const url = `${apiBase()}/api/v1/identify`;
   const form = new FormData();
   form.append('image', file);
   try {
@@ -35,11 +66,15 @@ export async function findIdentities(file, { signal } = {}) {
       const data = await res.json().catch(() => ({}));
       return { status: 'processing', requestId: data.requestId || data.id || data.request_id };
     }
-    const txt = await res.text();
-    return { status: 'error', error: `Unexpected response (${res.status}): ${txt}` };
+    const txt = await res.text().catch(() => '');
+    return { status: 'error', error: `Unexpected response (${res.status}) from ${url}: ${txt}` };
   } catch (e) {
     if (e.name === 'AbortError') return { status: 'error', error: 'Request was cancelled' };
-    return { status: 'error', error: e.message || 'Network error' };
+    // Optional helper: if mockOnNetworkError enabled, simulate response to allow UI validation
+    if (env.FEATURE_FLAGS.mockOnNetworkError) {
+      return { status: 'completed', results: mockResults() };
+    }
+    return { status: 'error', error: friendlyNetworkError(e, url) };
   }
 }
 
@@ -53,9 +88,9 @@ export async function getResults(requestId, { signal } = {}) {
     // or simulate processing longer depending on randomization if needed
   }
   if (!env.API_BASE_URL) {
-    return { status: 'error', error: 'API base URL is not configured.' };
+    return { status: 'error', error: 'API base URL is not configured. Set REACT_APP_API_BASE or REACT_APP_BACKEND_URL.' };
   }
-  const url = `${env.API_BASE_URL.replace(/\/+$/, '')}/api/v1/identify/${encodeURIComponent(requestId)}`;
+  const url = `${apiBase()}/api/v1/identify/${encodeURIComponent(requestId)}`;
   try {
     const res = await fetch(url, { method: 'GET', signal });
     if (res.status === 200) {
@@ -65,11 +100,14 @@ export async function getResults(requestId, { signal } = {}) {
     if (res.status === 202) {
       return { status: 'processing' };
     }
-    const txt = await res.text();
-    return { status: 'error', error: `Unexpected response (${res.status}): ${txt}` };
+    const txt = await res.text().catch(() => '');
+    return { status: 'error', error: `Unexpected response (${res.status}) from ${url}: ${txt}` };
   } catch (e) {
     if (e.name === 'AbortError') return { status: 'error', error: 'Request was cancelled' };
-    return { status: 'error', error: e.message || 'Network error' };
+    if (env.FEATURE_FLAGS.mockOnNetworkError) {
+      return { status: 'completed', results: mockResults() };
+    }
+    return { status: 'error', error: friendlyNetworkError(e, url) };
   }
 }
 

@@ -22,7 +22,9 @@ export function getEnv() {
   const FEATURE_FLAGS = getJSON(process.env.REACT_APP_FEATURE_FLAGS || '{}', {});
   const defaults = {
     mockApi: false,
-    maxUploadMB: 5
+    maxUploadMB: 5,
+    // If enabled, network errors in API client will fallback to mock results.
+    mockOnNetworkError: false
   };
 
   return {
